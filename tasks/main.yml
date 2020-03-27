@@ -1,0 +1,85 @@
+---
+# tasks file for roles/gossclient
+- name: Install jq cli json parser https://stedolan.github.io/jq/
+  become: yes
+  yum:
+    name: jq
+    state: latest
+
+- name: Clone AWS Kinesis Agent Repository
+  become: yes
+  git:
+    repo: 'https://github.com/awslabs/amazon-kinesis-agent.git'
+    dest: /tmp/aka
+
+#- name: Install AWS Kinesis Agent
+#  become: yes
+#  command: '/tmp/aka/setup --install'
+#  args:
+#    chdir: /tmp/aka
+#    executable: /bin/bash
+
+- name: Enable aws-kinesis-agent service and ensure it is not masked
+  become: yes
+  systemd:
+    name: aws-kinesis-agent
+    enabled: yes
+    masked: no
+
+- name: Make sure aws-kinesis-agent service is running
+  become: yes
+  systemd:
+    state: started
+    name: aws-kinesis-agent
+
+- name: Create Goss Client Directories
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - '/usr/local/mcollect/tests'
+
+- name: Install goss
+  become: yes
+  get_url:
+    url: https://github.com/aelsabbahy/goss/releases/download/v0.3.10/goss-linux-amd64
+    dest: /usr/local/bin/goss
+    mode: 'ugo+rx'
+
+- name: Upload Goss client environment.cfg
+  become: yes
+  copy:
+    src: environment.cfg
+    dest: /usr/local/mcollect/environment.cfg
+
+- name: Upload Goss client profile.cfg
+  become: yes
+  copy:
+    src: profile.cfg
+    dest: /usr/local/mcollect/profile.cfg
+
+- name: Upload Goss client smoke_test_1.yaml
+  become: yes
+  copy:
+    src: smoke_test_1.yaml
+    dest: /usr/local/mcollect/tests/smoke_test_1.yaml
+
+- name: Upload Goss client st_metrics.sh
+  become: yes
+  copy:
+    src: st_metrics.sh
+    dest: /usr/local/bin/st_metrics.sh
+
+- name: Change permissions on st_metrics.sh
+  become: yes
+  file:
+    path: /usr/local/bin/st_metrics.sh
+    mode: "u+rwx"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Upload AWS Kinesis Agent File agent.json
+  become: yes
+  copy:
+    src: agent.json
+    dest: /etc/aws-kinesis/agent.json
