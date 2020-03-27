@@ -12,12 +12,12 @@
     repo: 'https://github.com/awslabs/amazon-kinesis-agent.git'
     dest: /tmp/aka
 
-#- name: Install AWS Kinesis Agent
-#  become: yes
-#  command: '/tmp/aka/setup --install'
-#  args:
-#    chdir: /tmp/aka
-#    executable: /bin/bash
+- name: Install AWS Kinesis Agent
+  become: yes
+  command: '/tmp/aka/setup --install'
+  args:
+    chdir: /tmp/aka
+    executable: /bin/bash
 
 - name: Enable aws-kinesis-agent service and ensure it is not masked
   become: yes
