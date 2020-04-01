@@ -14,30 +14,36 @@ then
 else
   # GET ENVIRONMENT FROM /usr/local/mcollect/environment.cfg
   node_env=$(cat /usr/local/mcollect/environment.cfg)
-  # CREATE SmokeTestID
+  # CREATE SmokeTestID 1
   ts=$(date +%s)
   dufmt=$(date -d $ts 2>/dev/null | date '+%Y-%m-%d')
   dfmt=$(echo $dufmt | tr --delete -)
-  randomID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')
-  smt_id=${dfmt}-${randomID}
   # GET HOSTNAME
   node_name=$(hostname)
   # INITIALIZE SMOKE TEST NAME
   smt_name="BLANK"
+  # INITIALIZE SMOKE TEST COMPONENT
+  smt_component="BLANK"
   # INITIALIZE RUN STATUS
   run_status="BLANK"
   # GET CURRENT DATE AND TIMESTAMP
-  last_run=${ts}
+  #last_run=${ts}
+  last_run=$(date +%Y-%m-%dT%TZ)
   # INITIALIZE GOSS DATA
   goss_data="BLANK"
 
   # READ SMOKE TEST PROFILE FROM /usr/local/mcollect/profile.cfg
   while IFS= read -r smoke_test
   do
+    # CREATE SmokeTestID 2
+    randomID=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')
+    smt_id=${dfmt}-${randomID}
     # GET SMOKE TEST NAME
-    smt_name=${smoke_test}
+    smt_name=$(echo $smoke_test |cut -d '-' -f1)
+    # GET SMOKE TEST COMPONENT
+    smt_component=$(echo $smoke_test |cut -d '-' -f2)
     # RUN SMOKE TEST AND STORE RESULTS INTO GOSS DATA OBJECT
-    goss_data=$( goss -g /usr/local/mcollect/tests/${smoke_test}.yaml validate -f json )
+    goss_data=$( /usr/local/bin/goss -g /usr/local/mcollect/tests/${smoke_test}.yaml validate -f json )
     # WRITE GOSS DATA OBJECT TO A FILE TO PARSE
     echo ${goss_data} > /usr/local/mcollect/results.json
     # QUERY GOSS DATA OBJECT FOR FAIILED COUNT ATTRIBUTE
@@ -45,14 +51,13 @@ else
     # CHECK VALUE OF FAILED COUNT
     # IF failed_count == 0 THEN run_status = SUCCEEDED
     # ELSE run_status = FAILED
-    if [ $failed_count=0 ]
+    if [ $failed_count -eq 0 ]
     then
       run_status="SUCCEEDED"
     else
       run_status="FAILED"
     fi
     # BUILD SMOKE TEST RESULT OBJECT WITH ENRICHED METADATA AND WRITE TO LOG FILE
-    #echo '{"node_name":"'${node_name}'","node_env":"'${node_env}'","smt_id":"'${smoke_test}'","last_run":"'${last_run}'","run_status":"'${run_status}'","goss_data":'$(echo $goss_data)'}'
-    echo '{"node_env":"'${node_env}'","smt_id":"'${smt_id}'","node_name":"'${node_name}'","smt_name":"'${smt_name}'","run_status":"'${run_status}'","last_run":"'${last_run}'","goss_data":'$(echo $goss_data)'}'
+    echo '{"node_env":"'${node_env}'","smt_id":"'${smt_id}'","node_name":"'${node_name}'","smt_name":"'${smt_name}'","smt_component":"'${smt_component}'","run_status":"'${run_status}'","last_run":"'${last_run}'","goss_data":'$(echo $goss_data)'}'
   done < /usr/local/mcollect/profile.cfg
 fi

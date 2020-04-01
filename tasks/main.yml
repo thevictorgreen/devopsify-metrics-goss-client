@@ -19,6 +19,18 @@
 #    chdir: /tmp/aka
 #    executable: /bin/bash
 
+- name: Upload AWS Kinesis Agent File agent.json
+  become: yes
+  copy:
+    src: agent.json
+    dest: /etc/aws-kinesis/agent.json
+
+- name: Upload Smoke Test Metrics File smoke_test_metrics.out
+  become: yes
+  copy:
+    src: smoke_test_metrics.out
+    dest: /var/log/smoke_test_metrics.out
+
 - name: Enable aws-kinesis-agent service and ensure it is not masked
   become: yes
   systemd:
@@ -26,10 +38,10 @@
     enabled: yes
     masked: no
 
-- name: Make sure aws-kinesis-agent service is running
+- name: Make sure aws-kinesis-agent service is stopped
   become: yes
   systemd:
-    state: started
+    state: stopped
     name: aws-kinesis-agent
 
 - name: Create Goss Client Directories
@@ -38,7 +50,7 @@
     path: "{{ item }}"
     state: directory
   with_items:
-    - '/usr/local/mcollect/tests'
+    - '/usr/local/mcollect'
 
 - name: Install goss
   become: yes
@@ -59,17 +71,23 @@
     src: profile.cfg
     dest: /usr/local/mcollect/profile.cfg
 
-- name: Upload Goss client smoke_test_1.yaml
-  become: yes
-  copy:
-    src: smoke_test_1.yaml
-    dest: /usr/local/mcollect/tests/smoke_test_1.yaml
-
 - name: Upload Goss client st_metrics.sh
   become: yes
   copy:
     src: st_metrics.sh
     dest: /usr/local/bin/st_metrics.sh
+
+- name: Upload Goss client service probe
+  become: yes
+  copy:
+    src: probe_svc.py
+    dest: /usr/local/bin/probe_svc.py
+
+- name: Upload Goss client service discovery
+  become: yes
+  copy:
+    src: dsc_svc.py
+    dest: /usr/local/bin/dsc_svc.py
 
 - name: Change permissions on st_metrics.sh
   become: yes
@@ -78,8 +96,22 @@
     mode: "u+rwx"
   ignore_errors: "{{ ansible_check_mode }}"
 
-- name: Upload AWS Kinesis Agent File agent.json
+- name: Change permissions Goss client service probe
   become: yes
-  copy:
-    src: agent.json
-    dest: /etc/aws-kinesis/agent.json
+  file:
+    path: /usr/local/bin/probe_svc.py
+    mode: "u+rwx"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Change permissions Goss client service discovery
+  become: yes
+  file:
+    path: /usr/local/bin/dsc_svc.py
+    mode: "u+rwx"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Make sure aws-kinesis-agent service is running
+  become: yes
+  systemd:
+    state: started
+    name: aws-kinesis-agent
